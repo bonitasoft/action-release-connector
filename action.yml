@@ -1,0 +1,78 @@
+name: 'Release Bonita connector'
+description: 'This action is used to create a new release for a Bonita connector (& actor filter). It first creates a changelog based on the commits of the release, then it creates a Github release, built it and publish it on the nexus, and finally attached the built artifact to the release.'
+inputs:
+  release-version:
+    description: 'The version to release.'
+    required: true
+  github-token: 
+    description: The github token provided by Actions (you do not need to create your own token)
+    required: true
+  gpg_private_key:
+    description: GPG private key for signing the published artifacts
+    required: true
+  gpg_passphrase:
+    description: Passphrase for the GPG key
+    required: true
+  nexus_username:
+    description: Username (not email!) for your Nexus repository manager account
+    required: true
+  nexus_password:
+    description: Password for your Nexus account
+    required: true
+  build-and-release-command-line: 
+    description: The command-line used to build and publish the release
+    required: false
+    default: ./mvnw --batch-mode deploy -Pdeploy
+
+runs:
+  using: "composite"
+  steps:
+    - name: Setup Java
+    uses: actions/setup-java@v2
+    with:
+      java-version: 11
+      distribution: 'temurin'
+      cache: maven
+      server-id: ossrh
+      gpg-passphrase: GPG_PASSPHRASE
+      gpg-private-key: ${{ inputs.gpg_private_key }}
+      server-username: MAVEN_USERNAME
+      server-password: MAVEN_PASSWORD
+
+    - name: Generate changelog
+      uses: scottbrenner/generate-changelog-action@master 
+      id: Changelog
+      env:
+        REPO: ${{ github.repository }}
+
+    - name: Create Release
+      id: create_release
+      uses: actions/create-release@latest
+      env:
+        GITHUB_TOKEN: ${{ inputs.github-token }}
+      with:
+        tag_name: ${{ inputs.release-version }}
+        release_name: Release ${{ inputs.release-version }}
+        body: |
+          ${{ steps.Changelog.outputs.changelog }}
+        draft: false
+        prerelease: false
+
+      - name: Publish package
+        run: ${{ inputs.build-and-release-command-line }}
+        shell: bash
+        env:
+          GPG_PASSPHRASE: ${{ inputs.gpg_passphrase }}
+          MAVEN_USERNAME: ${{ inputs.ossrh_username }}
+          MAVEN_PASSWORD: ${{ inputs.ossrh_password }}
+  
+      - name: Upload Release Asset
+        id: upload-release-asset 
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ inputs.github-token }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+          asset_path: ./target/${{ github.event.repository.name }}-${{ inputs.release-version }}-all.zip
+          asset_name: ${{ github.event.repository.name }}-${{ inputs.release-version }}-all.zip
+          asset_content_type: application/zip
