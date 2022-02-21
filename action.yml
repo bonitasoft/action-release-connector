@@ -59,8 +59,8 @@ runs:
       shell: bash
       env:
         GPG_PASSPHRASE: ${{ inputs.gpg_passphrase }}
-        MAVEN_USERNAME: ${{ inputs.ossrh_username }}
-        MAVEN_PASSWORD: ${{ inputs.ossrh_password }}
+        MAVEN_USERNAME: ${{ inputs.nexus_username }}
+        MAVEN_PASSWORD: ${{ inputs.nexus_password }}
   
     - uses: actions/upload-release-asset@v1
       id: upload-release-asset 
