@@ -27,7 +27,6 @@ inputs:
 runs:
   using: "composite"
   steps:
-    - name: Setup Java
     uses: actions/setup-java@v2
     with:
       java-version: 11
@@ -39,40 +38,36 @@ runs:
       server-username: MAVEN_USERNAME
       server-password: MAVEN_PASSWORD
 
-    - name: Generate changelog
-      uses: scottbrenner/generate-changelog-action@master 
-      id: Changelog
-      env:
+    uses: scottbrenner/generate-changelog-action@master 
+    id: Changelog
+    env:
         REPO: ${{ github.repository }}
 
-    - name: Create Release
-      id: create_release
-      uses: actions/create-release@latest
-      env:
-        GITHUB_TOKEN: ${{ inputs.github-token }}
-      with:
-        tag_name: ${{ inputs.release-version }}
-        release_name: Release ${{ inputs.release-version }}
-        body: |
-          ${{ steps.Changelog.outputs.changelog }}
-        draft: false
-        prerelease: false
+    uses: actions/create-release@latest
+    id: create_release
+    env:
+      GITHUB_TOKEN: ${{ inputs.github-token }}
+    with:
+      tag_name: ${{ inputs.release-version }}
+      release_name: Release ${{ inputs.release-version }}
+      body: |
+        ${{ steps.Changelog.outputs.changelog }}
+      draft: false
+      prerelease: false
 
-      - name: Publish package
-        run: ${{ inputs.build-and-release-command-line }}
-        shell: bash
-        env:
-          GPG_PASSPHRASE: ${{ inputs.gpg_passphrase }}
-          MAVEN_USERNAME: ${{ inputs.ossrh_username }}
-          MAVEN_PASSWORD: ${{ inputs.ossrh_password }}
+    run: ${{ inputs.build-and-release-command-line }}
+    shell: bash
+    env:
+      GPG_PASSPHRASE: ${{ inputs.gpg_passphrase }}
+      MAVEN_USERNAME: ${{ inputs.ossrh_username }}
+      MAVEN_PASSWORD: ${{ inputs.ossrh_password }}
   
-      - name: Upload Release Asset
-        id: upload-release-asset 
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ inputs.github-token }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-          asset_path: ./target/${{ github.event.repository.name }}-${{ inputs.release-version }}-all.zip
-          asset_name: ${{ github.event.repository.name }}-${{ inputs.release-version }}-all.zip
-          asset_content_type: application/zip
+    uses: actions/upload-release-asset@v1
+    id: upload-release-asset 
+    env:
+      GITHUB_TOKEN: ${{ inputs.github-token }}
+    with:
+      upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
+      asset_path: ./target/${{ github.event.repository.name }}-${{ inputs.release-version }}-all.zip
+      asset_name: ${{ github.event.repository.name }}-${{ inputs.release-version }}-all.zip
+      asset_content_type: application/zip
