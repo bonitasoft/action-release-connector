@@ -27,6 +27,9 @@ inputs:
     description: The path of the folder containing the built asset to attach to the release
     required: false
     default: ./target
+  asset-name:
+    description: The name of the file containing the built asset to attach to the release
+    required: false
 
 runs:
   using: "composite"
@@ -65,13 +68,23 @@ runs:
         GPG_PASSPHRASE: ${{ inputs.gpg_passphrase }}
         MAVEN_USERNAME: ${{ inputs.nexus_username }}
         MAVEN_PASSWORD: ${{ inputs.nexus_password }}
-  
+
+    - run: |
+        if [ "$ASSET_NAME" == "" ]; then
+          echo ::set-output name=name:: ${{ github.event.repository.name }}-${{ inputs.release-version }}-all.zip
+        else
+          echo ::set-output name=name:: "$ASSET_NAME"
+        fi
+      shell: bash
+      env:
+        ASSET_NAME: ${{ inputs.asset-name }}
+      id: evaluate_asset_name
+
     - uses: actions/upload-release-asset@v1
       id: upload-release-asset 
       env:
         GITHUB_TOKEN: ${{ inputs.github-token }}
       with:
         upload_url: ${{ steps.create_release.outputs.upload_url }} # This pulls from the CREATE RELEASE step above, referencing it's ID to get its outputs object, which include a `upload_url`. See this blog post for more info: https://jasonet.co/posts/new-features-of-github-actions/#passing-data-to-future-steps 
-        asset_path: ${{ inputs.asset-path }}/${{ github.event.repository.name }}-${{ inputs.release-version }}-all.zip
-        asset_name: ${{ github.event.repository.name }}-${{ inputs.release-version }}-all.zip
+        asset_path: ${{ inputs.asset-path }}/steps.evaluate_asset_name.outputs.name
         asset_content_type: application/zip
