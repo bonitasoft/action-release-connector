@@ -70,8 +70,6 @@ runs:
         MAVEN_PASSWORD: ${{ inputs.nexus_password }}
 
     - run: |
-        echo proerty ${{ inputs.asset-name }}
-        echo env $ASSET_NAME
         if [ "$ASSET_NAME" == "" ]; then
           echo ::set-output name=name::${{ github.event.repository.name }}-${{ inputs.release-version }}-all.zip
         else
