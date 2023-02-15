@@ -71,9 +71,9 @@ runs:
 
     - run: |
         if [ "$ASSET_NAME" == "" ]; then
-          echo ::set-output name=name::${{ github.event.repository.name }}-${{ inputs.release-version }}-all.zip
+          echo "name=${{ github.event.repository.name }}-${{ inputs.release-version }}-all.zip" >> $GITHUB_OUTPUT
         else
-          echo ::set-output name=name::"$ASSET_NAME"
+          echo "name=$(echo $ASSET_NAME)" >> $GITHUB_OUTPUT          
         fi
       shell: bash
       env:
